@@ -1,11 +1,19 @@
 name: CI
 on: [push]
-
+  
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Cache mode_modules
+        uses: actions/cache@v1
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}node-${{ hasfiles('**/package-lock.json')}}  #how can genera new cache if file chanes
+          restore-key: |
+            ${{ runner.os }}node-
+          
       - name: use nodejs
         uses: actions/setup-node@v1
         with:
@@ -15,4 +23,15 @@ jobs:
       - run: npm test -- --coverage
         env:
           CI: true
-          
+      - name: build project
+        if: github.event_name == 'push'
+        run: npm run build
+      - name: deploy to build
+        if: github.event_name == 'push'
+        run: npx surge --project ./build --domain silent-apparatus.surge.sh
+        env:
+          SURGE_LOGIN: ${{secrets.login}}
+          SURGE_TOKEN: ${{secrets.password}} 
+
+        
+      
